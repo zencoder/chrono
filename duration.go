@@ -156,6 +156,11 @@ func (d Duration) format(exclusive ...Designator) (_ string, neg bool) {
 	return formatDuration(secs, nsec, neg, exclusive...)
 }
 
+var (
+	Fmt  = byte('f')
+	Prec = -1
+)
+
 func formatDuration(secs int64, nsec uint32, neg bool, exclusive ...Designator) (_ string, isNeg bool) {
 	values := make(map[Designator]float64, 3)
 	if len(exclusive) >= 1 {
@@ -216,15 +221,15 @@ func formatDuration(secs int64, nsec uint32, neg bool, exclusive ...Designator) 
 
 	out := "T"
 	if v, ok := values[Hours]; ok {
-		out += strconv.FormatFloat(v, 'f', -1, 64) + "H"
+		out += strconv.FormatFloat(v, Fmt, Prec, 64) + "H"
 	}
 
 	if v, ok := values[Minutes]; ok {
-		out += strconv.FormatFloat(v, 'f', -1, 64) + "M"
+		out += strconv.FormatFloat(v, Fmt, Prec, 64) + "M"
 	}
 
 	if v, ok := values[Seconds]; ok {
-		out += strconv.FormatFloat(v, 'f', -1, 64) + "S"
+		out += strconv.FormatFloat(v, Fmt, Prec, 64) + "S"
 	}
 	return out, neg
 }
