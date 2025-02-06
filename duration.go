@@ -217,15 +217,15 @@ func formatDuration(secs int64, nsec uint32, neg bool, exclusive ...Designator) 
 
 	out := "T"
 	if v, ok := values[Hours]; ok {
-		out += v.Text('g', -1) + "H"
+		out += v.Text('g', 11) + "H"
 	}
 
 	if v, ok := values[Minutes]; ok {
-		out += v.Text('g', -1) + "M"
+		out += v.Text('g', 11) + "M"
 	}
 
 	if v, ok := values[Seconds]; ok {
-		out += v.Text('g', -1) + "S"
+		out += v.Text('g', 11) + "S"
 	}
 	return out, neg
 }
