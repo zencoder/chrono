@@ -3,7 +3,6 @@ package chrono
 import (
 	"fmt"
 	"math/big"
-	"strconv"
 )
 
 // Duration represents a period of time with nanosecond precision,
@@ -157,10 +156,10 @@ func (d Duration) format(exclusive ...Designator) (_ string, neg bool) {
 }
 
 func formatDuration(secs int64, nsec uint32, neg bool, exclusive ...Designator) (_ string, isNeg bool) {
-	values := make(map[Designator]float64, 3)
+	values := make(map[Designator]*big.Float, 3)
 	if len(exclusive) >= 1 {
 		for _, d := range exclusive {
-			values[d] = 0
+			values[d] = big.NewFloat(0)
 		}
 	}
 
@@ -168,63 +167,65 @@ func formatDuration(secs int64, nsec uint32, neg bool, exclusive ...Designator) 
 	_, m := values[Minutes]
 	_, s := values[Seconds]
 
+	bSecs, bNSec := big.NewFloat(float64(secs)), big.NewFloat(float64(nsec))
+
 	switch {
 	case len(exclusive) == 0:
-		if v := float64(secs / 3600); v != 0 {
+		if v := big.NewFloat(float64(secs / 3600)); v.Cmp(big.NewFloat(0)) != 0 {
 			values[Hours] = v
 			h = true
 		}
 	case h && (m || s):
-		values[Hours] = float64(secs / 3600)
+		values[Hours] = big.NewFloat(float64(secs / 3600))
 	case h:
-		values[Hours] = (float64(secs) / 3600) + (float64(nsec) / 3.6e12)
+		values[Hours] = new(big.Float).Add(big.NewFloat(float64(secs)/3600), new(big.Float).Quo(bNSec, big.NewFloat(3.6e12)))
 	}
 
 	switch {
 	case len(exclusive) == 0:
-		if v := float64((secs % 3600) / 60); v != 0 {
+		if v := big.NewFloat(float64((secs % 3600) / 60)); v.Cmp(big.NewFloat(0)) != 0 {
 			values[Minutes] = v
 			m = true
 		}
 	case m && s && h:
-		values[Minutes] = float64((secs % 3600) / 60)
+		values[Minutes] = big.NewFloat(float64((secs % 3600) / 60))
 	case m && s:
-		values[Minutes] = float64(secs / 60)
+		values[Minutes] = big.NewFloat(float64(secs / 60))
 	case m && h:
-		values[Minutes] = (float64(secs%3600) / 60) + (float64(nsec) / 6e10)
+		values[Minutes] = new(big.Float).Add(big.NewFloat(float64(secs%3600)/60), new(big.Float).Quo(bNSec, big.NewFloat(6e10)))
 	case m:
-		values[Minutes] = (float64(secs) / 60) + (float64(nsec) / 6e10)
+		values[Minutes] = new(big.Float).Add(big.NewFloat(float64(secs)/60), new(big.Float).Quo(bNSec, big.NewFloat(6e10)))
 	}
 
 	switch {
 	case len(exclusive) == 0:
-		if v := float64(secs%60) + (float64(nsec) / 1e9); v != 0 {
+		if v := new(big.Float).Add(big.NewFloat(float64(secs%60)), new(big.Float).Quo(bNSec, big.NewFloat(1e9))); v.Cmp(big.NewFloat(0)) != 0 {
 			values[Seconds] = v
 			if h && !m {
-				values[Minutes] = 0
+				values[Minutes] = big.NewFloat(0)
 			}
 		} else if !h && !m {
-			values[Seconds] = 0
+			values[Seconds] = big.NewFloat(0)
 		}
 	case s && m:
-		values[Seconds] = float64(secs%60) + (float64(nsec) / 1e9)
+		values[Seconds] = new(big.Float).Add(big.NewFloat(float64(secs%60)), new(big.Float).Quo(bNSec, big.NewFloat(1e9)))
 	case s && h:
-		values[Seconds] = float64(secs%3600) + (float64(nsec) / 1e9)
+		values[Seconds] = new(big.Float).Add(big.NewFloat(float64(secs%3600)), new(big.Float).Quo(bNSec, big.NewFloat(1e9)))
 	case s:
-		values[Seconds] = float64(secs) + (float64(nsec) / 1e9)
+		values[Seconds] = new(big.Float).Add(bSecs, new(big.Float).Quo(bNSec, big.NewFloat(1e9)))
 	}
 
 	out := "T"
 	if v, ok := values[Hours]; ok {
-		out += strconv.FormatFloat(v, 'f', -1, 64) + "H"
+		out += v.String() + "H"
 	}
 
 	if v, ok := values[Minutes]; ok {
-		out += strconv.FormatFloat(v, 'f', -1, 64) + "M"
+		out += v.String() + "M"
 	}
 
 	if v, ok := values[Seconds]; ok {
-		out += strconv.FormatFloat(v, 'f', -1, 64) + "S"
+		out += v.String() + "S"
 	}
 	return out, neg
 }
